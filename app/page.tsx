@@ -70,7 +70,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-2 max-w-4xl mx-auto">
             {/* Lecturer Card */}
-            <div className="relative group rounded-3xl border border-zinc-200/80 bg-white/50 backdrop-blur-sm p-8 shadow-xl hover:shadow-2xl transition-all duration-300 dark:border-zinc-800/80 dark:bg-zinc-900/50 hover:border-blue-500/30 dark:hover:border-blue-400/30 flex flex-col justify-between overflow-hidden">
+            <div className="relative group rounded-3xl border border-zinc-200/80 bg-white/50 backdrop-blur-sm p-6 sm:p-8 shadow-xl hover:shadow-2xl transition-all duration-300 dark:border-zinc-800/80 dark:bg-zinc-900/50 hover:border-blue-500/30 dark:hover:border-blue-400/30 flex flex-col justify-between overflow-hidden">
               {/* Card Glow */}
               <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl group-hover:bg-blue-500/20 transition-colors duration-300"></div>
               
@@ -94,7 +94,7 @@ export default function Home() {
             </div>
 
             {/* Student Card */}
-            <div className="relative group rounded-3xl border border-zinc-200/80 bg-white/50 backdrop-blur-sm p-8 shadow-xl hover:shadow-2xl transition-all duration-300 dark:border-zinc-800/80 dark:bg-zinc-900/50 hover:border-emerald-500/30 dark:hover:border-emerald-400/30 flex flex-col justify-between overflow-hidden">
+            <div className="relative group rounded-3xl border border-zinc-200/80 bg-white/50 backdrop-blur-sm p-6 sm:p-8 shadow-xl hover:shadow-2xl transition-all duration-300 dark:border-zinc-800/80 dark:bg-zinc-900/50 hover:border-emerald-500/30 dark:hover:border-emerald-400/30 flex flex-col justify-between overflow-hidden">
               {/* Card Glow */}
               <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl group-hover:bg-emerald-500/20 transition-colors duration-300"></div>
 

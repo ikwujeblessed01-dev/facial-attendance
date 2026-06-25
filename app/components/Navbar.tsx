@@ -32,7 +32,7 @@ export default function Navbar() {
               <Camera className="h-5 w-5 animate-pulse" />
               <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-600 to-emerald-500 blur opacity-40 group-hover:opacity-75 transition-opacity duration-300 -z-10"></div>
             </div>
-            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
+            <span className="hidden sm:inline-block text-xl font-bold tracking-tight bg-gradient-to-r from-zinc-900 to-zinc-600 dark:from-white dark:to-zinc-300 bg-clip-text text-transparent">
               FaceCheck<span className="text-blue-600 dark:text-blue-400 font-extrabold">.</span>
             </span>
           </Link>

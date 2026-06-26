@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import Navbar from "../components/Navbar";
 import WebcamScanner from "../components/WebcamScanner";
 import ProtectedRoute from "../components/ProtectedRoute";
 import { useAuth } from "../lib/auth-context";
@@ -33,12 +32,20 @@ import {
   Clock,
   RefreshCw,
   FolderOpen,
-  Share2,
   Copy,
+  LayoutDashboard,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Bell,
+  Mail,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const uid = user?.uid;
 
   // DB States
@@ -48,9 +55,9 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<"setup" | "biometrics" | "logs">(
-    "setup"
-  );
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "setup" | "biometrics" | "logs"
+  >("dashboard");
 
   // Form States
   const [courseName, setCourseName] = useState("");
@@ -136,11 +143,9 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!studentName.trim() || !studentRoll.trim() || !uid) return;
 
-    // Check if roll number already exists
     if (
       students.some(
-        (s) =>
-          s.rollNumber.toLowerCase() === studentRoll.trim().toLowerCase()
+        (s) => s.rollNumber.toLowerCase() === studentRoll.trim().toLowerCase()
       )
     ) {
       triggerNotification(
@@ -214,7 +219,6 @@ export default function AdminDashboard() {
         triggerNotification("Database update failed.", "error");
       }
 
-      // Reset scanner status alert after some time
       setTimeout(() => {
         setBoothSuccess(null);
         setBoothStatus("Align student face and take snapshot");
@@ -222,14 +226,12 @@ export default function AdminDashboard() {
     }, 1500);
   };
 
-  // Handle student select for enrollment
   const handleSelectStudent = (id: string) => {
     setSelectedStudentId(id);
     const student = students.find((s) => s.id === id);
     setRegisteredPreview(student?.faceTemplate || null);
   };
 
-  // Filter Attendance Logs
   const filteredLogs = logs.filter((log) => {
     const matchesCourse =
       filterCourse === "all" || log.courseId === filterCourse;
@@ -247,7 +249,6 @@ export default function AdminDashboard() {
     return matchesCourse && matchesDate && matchesSearch;
   });
 
-  // Export logs to CSV
   const handleExportCSV = () => {
     if (filteredLogs.length === 0) {
       triggerNotification("No attendance records to export.", "error");
@@ -281,7 +282,6 @@ export default function AdminDashboard() {
     triggerNotification("Report exported successfully!", "success");
   };
 
-  // Clear Attendance logs
   const handleClearLogs = async () => {
     if (!uid) return;
     if (
@@ -299,724 +299,672 @@ export default function AdminDashboard() {
     }
   };
 
-  // Copy share code
   const copyShareCode = (code: string) => {
     navigator.clipboard.writeText(code);
     triggerNotification(`Copied class code: ${code}`, "success");
   };
 
-  // Statistics calculation for filtered view
   const stats = {
-    totalRecords: filteredLogs.length,
-    present: filteredLogs.filter((l) => l.status === "Present").length,
-    absent: filteredLogs.filter((l) => l.status === "Absent").length,
+    totalRecords: logs.length,
+    present: logs.filter((l) => l.status === "Present").length,
     avgConfidence:
-      filteredLogs.length > 0
+      logs.length > 0
         ? Math.round(
-            filteredLogs.reduce((acc, curr) => acc + curr.similarityScore, 0) /
-              filteredLogs.length
+            logs.reduce((acc, curr) => acc + curr.similarityScore, 0) /
+              logs.length
           )
         : 0,
   };
 
   return (
     <ProtectedRoute>
-      <Navbar />
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-20">
-        {/* Banner Notifications (Toast Stack) */}
-        <div className="toast-stack">
+      <div className="flex h-screen bg-slate-50 text-slate-900 font-sans overflow-hidden">
+        {/* TOASTS */}
+        <div className="fixed top-5 right-5 z-50 flex flex-col gap-2">
           {toasts.map((toast) => (
             <div
               key={toast.id}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-lg text-sm font-semibold animate-toast-enter ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg text-sm font-medium animate-toast-enter ${
                 toast.type === "success"
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/90 dark:border-emerald-800 dark:text-emerald-400"
-                  : "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/90 dark:border-red-800 dark:text-red-400"
+                  ? "bg-white border-green-200 text-green-800"
+                  : "bg-white border-red-200 text-red-800"
               }`}
             >
-              <span
+              <div
                 className={`h-2 w-2 rounded-full ${
-                  toast.type === "success" ? "bg-emerald-500" : "bg-red-500"
+                  toast.type === "success" ? "bg-green-500" : "bg-red-500"
                 }`}
-              ></span>
-              <span>{toast.message}</span>
+              />
+              {toast.message}
             </div>
           ))}
         </div>
 
-        {/* Dashboard Title banner */}
-        <div className="relative border-b border-zinc-200/50 bg-white py-8 dark:border-zinc-800/50 dark:bg-zinc-900/40">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-fade-in">
+        {/* SIDEBAR */}
+        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0">
+          <div>
+            {/* Logo */}
+            <div className="h-20 flex items-center px-8 border-b border-slate-100">
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-900 text-white shadow-md">
+                  <Camera className="h-4 w-4" />
+                </div>
+                <span className="text-xl font-bold tracking-tight text-slate-800">
+                  Donezo
+                </span>
+              </Link>
+            </div>
+
+            {/* Menu Sections */}
+            <div className="px-4 py-6 space-y-8">
+              {/* Menu 1 */}
               <div>
-                <h1 className="text-3xl font-extrabold tracking-tight">
-                  Lecturer Control Panel
-                </h1>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-1">
-                  Configure student databases, register biometrics, and audit
-                  attendance metrics.
-                </p>
+                <h3 className="px-4 text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3">
+                  Menu
+                </h3>
+                <nav className="space-y-1">
+                  <button
+                    onClick={() => setActiveTab("dashboard")}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+                      activeTab === "dashboard"
+                        ? "bg-emerald-50/50 text-emerald-900 font-semibold relative"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    {activeTab === "dashboard" && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-800 rounded-r-md" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span>Dashboard</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("setup")}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+                      activeTab === "setup"
+                        ? "bg-emerald-50/50 text-emerald-900 font-semibold relative"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    {activeTab === "setup" && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-800 rounded-r-md" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Classes & Setup</span>
+                    </div>
+                    {courses.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-900 text-white text-[10px] font-bold">
+                        {courses.length}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("biometrics")}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+                      activeTab === "biometrics"
+                        ? "bg-emerald-50/50 text-emerald-900 font-semibold relative"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    {activeTab === "biometrics" && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-800 rounded-r-md" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Users className="h-4 w-4" />
+                      <span>Biometric Kiosk</span>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab("logs")}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+                      activeTab === "logs"
+                        ? "bg-emerald-50/50 text-emerald-900 font-semibold relative"
+                        : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    {activeTab === "logs" && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-800 rounded-r-md" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Calendar className="h-4 w-4" />
+                      <span>Attendance Ledger</span>
+                    </div>
+                  </button>
+                </nav>
               </div>
 
-              {/* Tab Selector Links */}
-              <div className="flex overflow-x-auto whitespace-nowrap space-x-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-xl max-w-full md:max-w-md border border-zinc-200/50 dark:border-zinc-800/50">
-                <button
-                  onClick={() => setActiveTab("setup")}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                    activeTab === "setup"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-                  }`}
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  Academic Setup
-                </button>
-                <button
-                  onClick={() => setActiveTab("biometrics")}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                    activeTab === "biometrics"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-                  }`}
-                >
-                  <Camera className="h-3.5 w-3.5" />
-                  Biometric Booth
-                </button>
-                <button
-                  onClick={() => setActiveTab("logs")}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-                    activeTab === "logs"
-                      ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm"
-                      : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white"
-                  }`}
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  Attendance ledger
+              {/* Menu 2 */}
+              <div>
+                <h3 className="px-4 text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3">
+                  General
+                </h3>
+                <nav className="space-y-1">
+                  <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">
+                    <div className="flex items-center gap-3">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </div>
+                  </button>
+                  <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all">
+                    <div className="flex items-center gap-3">
+                      <HelpCircle className="h-4 w-4" />
+                      <span>Help</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => signOut()}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-700 transition-all mt-4"
+                  >
+                    <div className="flex items-center gap-3">
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </div>
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+
+          {/* Promotional Card Bottom */}
+          <div className="p-4">
+            <div className="bg-emerald-900 rounded-2xl p-5 relative overflow-hidden text-white shadow-xl shadow-emerald-900/20">
+              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-emerald-800/50 rounded-full blur-2xl"></div>
+              <div className="relative z-10">
+                <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center mb-4">
+                  <Camera className="h-4 w-4 text-white" />
+                </div>
+                <h4 className="font-bold mb-1">Download our<br/>Mobile App</h4>
+                <p className="text-xs text-emerald-100/80 mb-4">Get easy in another way</p>
+                <button className="w-full py-2 bg-emerald-800 hover:bg-emerald-700 text-xs font-semibold rounded-lg transition-colors border border-emerald-700/50">
+                  Download
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </aside>
 
-        {/* Content Section */}
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {loadingData ? (
-            <div className="space-y-8 animate-fade-in">
-              <div className="grid gap-8 md:grid-cols-2">
-                <div className="h-96 rounded-2xl skeleton" />
-                <div className="h-96 rounded-2xl skeleton" />
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 flex flex-col overflow-hidden relative">
+          
+          {/* Top Bar */}
+          <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 z-10">
+            {/* Search Box */}
+            <div className="relative w-96">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search task or student"
+                className="w-full pl-10 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all placeholder-slate-400"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-sm">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded shadow-sm">F</kbd>
               </div>
             </div>
-          ) : (
-            <>
-              {/* TAB 1: ACADEMIC SETUP */}
-              {activeTab === "setup" && (
-                <div className="space-y-8 animate-fade-in">
-                  <div className="grid gap-8 md:grid-cols-2">
-                    {/* Course Setup Card */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
-                      <div className="flex items-center gap-2 mb-6">
-                        <BookOpen className="h-5 w-5 text-blue-500" />
-                        <h2 className="text-xl font-bold">Add New Course</h2>
-                      </div>
-                      <form onSubmit={handleAddCourse} className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1.5">
-                            Course Code
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. CS-101"
-                            required
-                            value={courseCode}
-                            onChange={(e) => setCourseCode(e.target.value)}
-                            className="w-full px-3.5 py-2 text-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1.5">
-                            Course Name
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Introduction to Programming"
-                            required
-                            value={courseName}
-                            onChange={(e) => setCourseName(e.target.value)}
-                            className="w-full px-3.5 py-2 text-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] shadow-md shadow-blue-500/10 transition-all duration-200"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Register Course
-                        </button>
-                      </form>
 
-                      {/* Course list */}
-                      <div className="mt-8 border-t border-zinc-200/50 dark:border-zinc-800/50 pt-6">
-                        <h3 className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-3.5">
-                          Current Courses ({courses.length})
-                        </h3>
-                        {courses.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-6 text-zinc-400">
-                            <BookOpen className="h-8 w-8 mb-2 opacity-50" />
-                            <p className="text-xs italic">
-                              No courses added yet.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid gap-2 max-h-56 overflow-y-auto pr-1">
-                            {courses.map((course) => (
-                              <div
-                                key={course.id}
-                                className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200/55 dark:bg-zinc-950/40 dark:border-zinc-800/40 group hover:border-blue-300 dark:hover:border-blue-900 transition-colors"
-                              >
-                                <div>
-                                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                                    {course.code}
-                                  </p>
-                                  <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                    {course.name}
-                                  </p>
-                                </div>
-                                {course.shareCode && (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-mono bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-zinc-200 dark:border-zinc-800">
-                                      {course.shareCode}
-                                    </span>
-                                    <button
-                                      onClick={() =>
-                                        copyShareCode(course.shareCode!)
-                                      }
-                                      className="p-1.5 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                                      title="Copy Class Join Code"
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </button>
+            {/* Profile & Notifications */}
+            <div className="flex items-center gap-4">
+              <button className="h-10 w-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors relative">
+                <Mail className="h-4 w-4" />
+              </button>
+              <button className="h-10 w-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors relative">
+                <Bell className="h-4 w-4" />
+                <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 bg-red-500 rounded-full ring-2 ring-white"></span>
+              </button>
+              
+              <div className="h-8 w-px bg-slate-200 mx-2"></div>
+              
+              <div className="flex items-center gap-3 pl-2">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-900 font-bold overflow-hidden border border-emerald-200">
+                  {user?.displayName?.charAt(0) || "L"}
+                </div>
+                <div className="hidden lg:block">
+                  <p className="text-sm font-bold text-slate-800 leading-tight">
+                    {user?.displayName || "Lecturer Admin"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                    {user?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Scrolling Content */}
+          <main className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+              
+              {/* Header Title & Actions */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                    {activeTab === "dashboard" && "Dashboard"}
+                    {activeTab === "setup" && "Classes & Setup"}
+                    {activeTab === "biometrics" && "Biometric Booth"}
+                    {activeTab === "logs" && "Attendance Ledger"}
+                  </h1>
+                  <p className="text-slate-500 text-sm mt-1.5">
+                    {activeTab === "dashboard" && "Plan, prioritize, and accomplish your tasks with ease."}
+                    {activeTab === "setup" && "Manage your class rosters and student enrollment."}
+                    {activeTab === "biometrics" && "Register student facial profiles securely."}
+                    {activeTab === "logs" && "Review history and export attendance data."}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setActiveTab("setup")}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-full shadow-md shadow-emerald-900/20 active:scale-[0.98] transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Course
+                  </button>
+                  <button 
+                    onClick={handleExportCSV}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-full shadow-sm active:scale-[0.98] transition-all"
+                  >
+                    Export Data
+                  </button>
+                </div>
+              </div>
+
+              {/* STAT CARDS ROW */}
+              {activeTab === "dashboard" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Dark Green Card */}
+                    <div className="bg-emerald-900 rounded-[2rem] p-6 text-white shadow-xl shadow-emerald-900/20 relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                      <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-800/50 rounded-full blur-2xl"></div>
+                      <div className="flex justify-between items-start relative z-10">
+                        <span className="text-sm font-medium text-emerald-100">Total Courses</span>
+                        <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <TrendingUp className="h-4 w-4 text-emerald-900" />
+                        </div>
+                      </div>
+                      <div className="mt-4 relative z-10">
+                        <span className="text-4xl font-black">{courses.length}</span>
+                      </div>
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/10 text-[10px] font-medium backdrop-blur-sm relative z-10">
+                        <TrendingUp className="h-3 w-3" />
+                        Active this semester
+                      </div>
+                    </div>
+
+                    {/* White Card 1 */}
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm hover:shadow-md group hover:-translate-y-1 transition-all">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-bold text-slate-800">Total Students</span>
+                        <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-50 transition-colors">
+                          <TrendingUp className="h-4 w-4 text-slate-600" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-4xl font-black text-slate-900">{students.length}</span>
+                      </div>
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
+                        <TrendingUp className="h-3 w-3" />
+                        Enrolled across all classes
+                      </div>
+                    </div>
+
+                    {/* White Card 2 */}
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm hover:shadow-md group hover:-translate-y-1 transition-all">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-bold text-slate-800">Attendance Logs</span>
+                        <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-50 transition-colors">
+                          <TrendingUp className="h-4 w-4 text-slate-600" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-4xl font-black text-slate-900">{logs.length}</span>
+                      </div>
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 text-[10px] font-semibold text-emerald-700">
+                        <TrendingUp className="h-3 w-3" />
+                        Check-ins recorded
+                      </div>
+                    </div>
+
+                    {/* White Card 3 */}
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm hover:shadow-md group hover:-translate-y-1 transition-all">
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-bold text-slate-800">Avg Presence</span>
+                        <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:bg-slate-50 transition-colors">
+                          <TrendingUp className="h-4 w-4 text-slate-600" />
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-4xl font-black text-slate-900">
+                          {logs.length > 0 ? Math.round((stats.present / logs.length) * 100) : 0}%
+                        </span>
+                      </div>
+                      <div className="mt-4 text-[10px] font-medium text-slate-400 pt-1">
+                        Overall student presence
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dashboard Lower Content Area */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column (Wider) */}
+                    <div className="lg:col-span-2 space-y-6">
+                      
+                      {/* Fake Chart Area */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm h-72 flex flex-col justify-between">
+                        <h3 className="font-bold text-slate-800 mb-6">Attendance Analytics</h3>
+                        <div className="flex-1 flex items-end justify-between px-4 gap-2">
+                          {/* Simulated bar chart mimicking the inspiration image */}
+                          {[40, 70, 95, 100, 60, 45, 80].map((height, i) => (
+                            <div key={i} className="w-full max-w-[40px] flex flex-col items-center gap-3">
+                              <div className="w-full relative group">
+                                {i === 2 && (
+                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border border-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm text-slate-600">
+                                    {height}%
                                   </div>
                                 )}
+                                <div 
+                                  className={`w-full rounded-t-full rounded-b-full transition-all ${
+                                    i === 3 ? "bg-emerald-900" : 
+                                    i === 2 ? "bg-emerald-500" : 
+                                    "bg-emerald-50"
+                                  } ${i !== 3 && i !== 2 ? "[background-image:repeating-linear-gradient(45deg,transparent,transparent_5px,rgba(16,92,56,0.1)_5px,rgba(16,92,56,0.1)_10px)]" : ""}`}
+                                  style={{ height: `${height * 1.5}px` }}
+                                ></div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Student Enrollment Card */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
-                      <div className="flex items-center gap-2 mb-6">
-                        <Users className="h-5 w-5 text-indigo-500" />
-                        <h2 className="text-xl font-bold">Enroll Student</h2>
-                      </div>
-                      <form onSubmit={handleAddStudent} className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1.5">
-                            Roll Number / ID
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 2026-CS-042"
-                            required
-                            value={studentRoll}
-                            onChange={(e) => setStudentRoll(e.target.value)}
-                            className="w-full px-3.5 py-2 text-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                          />
+                              <span className="text-[10px] font-bold text-slate-400">
+                                {['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                        <div>
-                          <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1.5">
-                            Full Name
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Liam Martinez"
-                            required
-                            value={studentName}
-                            onChange={(e) => setStudentName(e.target.value)}
-                            className="w-full px-3.5 py-2 text-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] shadow-md shadow-indigo-500/10 transition-all duration-200"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add to Roster
-                        </button>
-                      </form>
+                      </div>
 
-                      {/* Student list */}
-                      <div className="mt-8 border-t border-zinc-200/50 dark:border-zinc-800/50 pt-6">
-                        <h3 className="text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-3.5">
-                          Enrolled Students ({students.length})
-                        </h3>
-                        {students.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-6 text-zinc-400">
-                            <Users className="h-8 w-8 mb-2 opacity-50" />
-                            <p className="text-xs italic">
-                              No students added yet.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="grid gap-2 max-h-56 overflow-y-auto pr-1">
-                            {students.map((student) => (
-                              <div
-                                key={student.id}
-                                className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 border border-zinc-200/55 dark:bg-zinc-950/40 dark:border-zinc-800/40 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/60 transition-all"
-                              >
+                      {/* Team/Student List */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="font-bold text-slate-800">Recent Students</h3>
+                          <button onClick={() => setActiveTab("setup")} className="text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors">
+                            + Add Student
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          {students.slice(0, 4).map((student) => (
+                            <div key={student.id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group">
+                              <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 text-slate-400 overflow-hidden">
+                                  {student.faceTemplate ? (
+                                    <img src={student.faceTemplate} alt="" className="w-full h-full object-cover scale-x-[-1]" />
+                                  ) : (
+                                    <Users className="h-4 w-4" />
+                                  )}
+                                </div>
                                 <div>
-                                  <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                                    {student.name}
-                                  </p>
-                                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
-                                    ROLL: {student.rollNumber}
-                                  </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-semibold border ${
-                                      student.faceTemplate
-                                        ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400"
-                                        : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-400 animate-pulse"
-                                    }`}
-                                  >
-                                    {student.faceTemplate
-                                      ? "Face Registered"
-                                      : "No Face Data"}
-                                  </span>
-                                  <button
-                                    onClick={() =>
-                                      handleDeleteStudent(student.id)
-                                    }
-                                    className="text-zinc-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 active:scale-90 transition-all"
-                                    title="Remove Student"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </button>
+                                  <h4 className="text-sm font-bold text-slate-800 group-hover:text-emerald-900 transition-colors">{student.name}</h4>
+                                  <p className="text-[10px] text-slate-500 mt-0.5">Roll: {student.rollNumber}</p>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
+                              <span className={`px-2.5 py-1 rounded text-[9px] font-bold ${
+                                student.faceTemplate ? "bg-emerald-50 text-emerald-700" : "bg-orange-50 text-orange-700"
+                              }`}>
+                                {student.faceTemplate ? "Registered" : "Pending"}
+                              </span>
+                            </div>
+                          ))}
+                          {students.length === 0 && (
+                            <p className="text-sm text-slate-400 text-center py-4">No students enrolled yet.</p>
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Right Column (Narrower) */}
+                    <div className="space-y-6">
+                      
+                      {/* Projects/Courses List */}
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                          <h3 className="font-bold text-slate-800">Active Courses</h3>
+                          <button onClick={() => setActiveTab("setup")} className="text-xs font-semibold px-3 py-1.5 border border-slate-200 rounded-full hover:bg-slate-50 transition-colors">
+                            + New
+                          </button>
+                        </div>
+                        <div className="space-y-5">
+                          {courses.slice(0, 4).map((course, i) => (
+                            <div key={course.id} className="flex items-start gap-4">
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                                i === 0 ? "bg-blue-100 text-blue-600" :
+                                i === 1 ? "bg-emerald-100 text-emerald-600" :
+                                i === 2 ? "bg-purple-100 text-purple-600" :
+                                "bg-orange-100 text-orange-600"
+                              }`}>
+                                <BookOpen className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-slate-800">{course.name}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <p className="text-[10px] text-slate-500 font-mono bg-slate-100 px-1.5 py-0.5 rounded">Code: {course.shareCode}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {courses.length === 0 && (
+                            <p className="text-sm text-slate-400 text-center py-4">No courses active.</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Time Tracker / Reminder Card */}
+                      <div className="bg-emerald-900 rounded-[2rem] p-6 text-white shadow-xl shadow-emerald-900/20 relative overflow-hidden flex flex-col justify-between h-48">
+                        {/* Wavy background simulation */}
+                        <div className="absolute inset-0 opacity-20 [background-image:repeating-radial-gradient(circle_at_bottom_right,transparent,transparent_10px,white_10px,white_20px)] mix-blend-overlay"></div>
+                        <div className="relative z-10">
+                          <h3 className="text-xs font-bold text-emerald-100 uppercase tracking-wider mb-2">Class Session</h3>
+                          <p className="text-4xl font-black tabular-nums tracking-tight">01:24:08</p>
+                        </div>
+                        <div className="relative z-10 flex gap-2">
+                          <button className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-emerald-900 hover:scale-105 transition-transform">
+                            <span className="h-3 w-1 bg-emerald-900 rounded-full mx-0.5"></span>
+                            <span className="h-3 w-1 bg-emerald-900 rounded-full mx-0.5"></span>
+                          </button>
+                          <button className="h-10 w-10 bg-red-500 rounded-full flex items-center justify-center text-white hover:scale-105 transition-transform">
+                            <span className="h-3 w-3 bg-white rounded-[2px]"></span>
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* OTHER TABS (Setup, Biometrics, Logs) go here... 
+                  I will adapt them to use the new white card style. */}
+              {activeTab === "setup" && (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <BookOpen className="h-5 w-5 text-emerald-700" /> Add New Course
+                    </h3>
+                    <form onSubmit={handleAddCourse} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Course Code</label>
+                        <input
+                          type="text"
+                          required
+                          value={courseCode}
+                          onChange={(e) => setCourseCode(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Course Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={courseName}
+                          onChange={(e) => setCourseName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
+                        />
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]">
+                        Register Course
+                      </button>
+                    </form>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-emerald-700" /> Enroll Student
+                    </h3>
+                    <form onSubmit={handleAddStudent} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Roll Number / ID</label>
+                        <input
+                          type="text"
+                          required
+                          value={studentRoll}
+                          onChange={(e) => setStudentRoll(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Full Name</label>
+                        <input
+                          type="text"
+                          required
+                          value={studentName}
+                          onChange={(e) => setStudentName(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
+                        />
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]">
+                        Add to Roster
+                      </button>
+                    </form>
                   </div>
                 </div>
               )}
 
-              {/* TAB 2: BIOMETRIC REGISTRATION BOOTH */}
               {activeTab === "biometrics" && (
-                <div className="space-y-8 animate-fade-in">
-                  <div className="grid gap-8 lg:grid-cols-3">
-                    {/* Select student to register */}
-                    <div className="rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <Users className="h-5 w-5 text-indigo-500" />
-                          <h2 className="text-xl font-bold">Select Student</h2>
-                        </div>
-                        <p className="text-zinc-500 dark:text-zinc-400 text-xs mb-4">
-                          Select a student from the roster below to launch the
-                          capture scanner booth.
-                        </p>
-
-                        <div className="space-y-1.5 max-h-[380px] overflow-y-auto pr-1">
-                          {students.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-8 text-zinc-400 bg-zinc-50 dark:bg-zinc-900/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800">
-                              <Users className="h-6 w-6 mb-2 opacity-50" />
-                              <p className="text-xs italic">
-                                No students available.
-                              </p>
-                              <p className="text-[10px]">
-                                Create one in Academic Setup.
-                              </p>
-                            </div>
-                          ) : (
-                            students.map((student) => {
-                              const isSelected =
-                                selectedStudentId === student.id;
-                              return (
-                                <button
-                                  key={student.id}
-                                  onClick={() =>
-                                    handleSelectStudent(student.id)
-                                  }
-                                  className={`w-full text-left p-3 rounded-xl border flex items-center justify-between transition-all ${
-                                    isSelected
-                                      ? "bg-indigo-50/70 border-indigo-300 dark:bg-indigo-950/40 dark:border-indigo-950 shadow-sm"
-                                      : "bg-zinc-50/50 border-zinc-200/60 dark:bg-zinc-950/20 dark:border-zinc-800/50 hover:bg-zinc-100/50 dark:hover:bg-zinc-900/40"
-                                  }`}
-                                >
-                                  <div>
-                                    <h4
-                                      className={`text-xs font-bold ${
-                                        isSelected
-                                          ? "text-indigo-800 dark:text-indigo-300"
-                                          : "text-zinc-800 dark:text-zinc-200"
-                                      }`}
-                                    >
-                                      {student.name}
-                                    </h4>
-                                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5">
-                                      ROLL: {student.rollNumber}
-                                    </p>
-                                  </div>
-                                  <span
-                                    className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[8px] font-semibold border ${
-                                      student.faceTemplate
-                                        ? "bg-emerald-50/60 border-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-400"
-                                        : "bg-amber-50/60 border-amber-100 text-amber-700 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-400"
-                                    }`}
-                                  >
-                                    {student.faceTemplate
-                                      ? "Registered"
-                                      : "Pending"}
-                                  </span>
-                                </button>
-                              );
-                            })
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Registered preview image */}
-                      {selectedStudentId && (
-                        <div className="mt-6 border-t border-zinc-200/50 dark:border-zinc-800/50 pt-4 flex flex-col items-center animate-fade-in">
-                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2.5">
-                            Current Biometric Scan
-                          </h4>
-                          {registeredPreview ? (
-                            <div className="relative h-28 w-36 rounded-xl border border-zinc-200 shadow-inner overflow-hidden dark:border-zinc-800">
-                              <img
-                                src={registeredPreview}
-                                alt="Registered Face"
-                                className="w-full h-full object-cover scale-x-[-1]"
-                              />
-                              <div className="absolute inset-0 bg-emerald-500/10 pointer-events-none border-2 border-emerald-500/40 rounded-xl"></div>
-                              <span className="absolute bottom-1 right-1 rounded bg-zinc-900/80 px-1 py-0.5 text-[8px] font-semibold text-white border border-zinc-800">
-                                Registered
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="h-28 w-36 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center text-center p-3 text-zinc-400">
-                              <Camera className="h-5 w-5 mb-1.5 animate-pulse text-zinc-300" />
-                              <span className="text-[10px] leading-tight font-medium">
-                                No biometric print captured yet
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <h3 className="font-bold text-slate-800 mb-2">Select Student</h3>
+                    <p className="text-xs text-slate-500 mb-6">Select from roster to launch scanner.</p>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                      {students.map((student) => (
+                        <button
+                          key={student.id}
+                          onClick={() => handleSelectStudent(student.id)}
+                          className={`w-full text-left p-3 rounded-xl border flex items-center justify-between transition-all ${
+                            selectedStudentId === student.id
+                              ? "border-emerald-900 bg-emerald-50 shadow-sm"
+                              : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                          }`}
+                        >
+                          <div>
+                            <h4 className={`text-sm font-bold ${selectedStudentId === student.id ? "text-emerald-900" : "text-slate-800"}`}>{student.name}</h4>
+                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">{student.rollNumber}</p>
+                          </div>
+                          {student.faceTemplate && <CheckCircle className="h-4 w-4 text-emerald-600" />}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
-                    {/* The camera capture booth */}
-                    <div className="lg:col-span-2 rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm p-6 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40 flex flex-col items-center">
-                      <div className="w-full flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <Camera className="h-5 w-5 text-blue-500" />
-                          <h2 className="text-xl font-bold">
-                            Biometric Scanning Booth
-                          </h2>
-                        </div>
-                        {selectedStudentId && (
-                          <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 animate-pulse bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-900">
-                            Enrollment Active:{" "}
-                            {
-                              students.find((s) => s.id === selectedStudentId)
-                                ?.name
-                            }
-                          </span>
-                        )}
-                      </div>
-
-                      {selectedStudentId ? (
-                        <div className="w-full flex flex-col items-center animate-scale-in">
+                  <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col items-center justify-center min-h-[500px]">
+                     {selectedStudentId ? (
+                        <div className="w-full flex flex-col items-center">
+                          <div className="w-full flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-slate-800">Biometric Registration</h2>
+                            <span className="text-xs font-semibold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-200">
+                              Enrolling: {students.find((s) => s.id === selectedStudentId)?.name}
+                            </span>
+                          </div>
                           <WebcamScanner
                             onCapture={handleFaceCapture}
                             isScanning={isCapturing}
                             scanStatus={boothStatus}
                             scanSuccess={boothSuccess}
                           />
-                          <div className="mt-4 flex items-start gap-2 bg-zinc-50 dark:bg-zinc-950/30 border border-zinc-200 dark:border-zinc-800 p-3 rounded-xl max-w-md">
-                            <AlertTriangle className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                              <strong className="text-zinc-700 dark:text-zinc-200">
-                                How to capture:
-                              </strong>{" "}
-                              Click the camera button below the preview screen.
-                              Ensure the student is well-lit and looking directly
-                              at the camera.
-                            </p>
-                          </div>
                         </div>
                       ) : (
-                        <div className="w-full flex flex-col items-center justify-center p-16 rounded-xl border border-dashed border-zinc-300 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/20 aspect-[4/3]">
-                          <Users className="h-12 w-12 text-zinc-400 mb-3 animate-bounce" />
-                          <h3 className="text-base font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-                            Enrollment Booth Inactive
-                          </h3>
-                          <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center max-w-sm">
-                            Please select a student from the sidebar roster on
-                            the left to initiate the webcam facial encoder.
-                          </p>
+                        <div className="text-center p-8">
+                          <div className="h-16 w-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Camera className="h-6 w-6 text-slate-400" />
+                          </div>
+                          <h3 className="text-lg font-bold text-slate-800 mb-2">Scanner Inactive</h3>
+                          <p className="text-sm text-slate-500 max-w-sm mx-auto">Select a student from the sidebar to begin biometric registration.</p>
                         </div>
                       )}
-                    </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 3: ATTENDANCE LEDGER */}
               {activeTab === "logs" && (
-                <div className="space-y-6 animate-fade-in">
-                  {/* Ledger Summary Stats */}
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                          Filtered Records
-                        </span>
-                        <FolderOpen className="h-4 w-4 text-zinc-400" />
-                      </div>
-                      <p className="text-2xl font-black mt-2">
-                        {stats.totalRecords}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                          Present Count
-                        </span>
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
-                      </div>
-                      <p className="text-2xl font-black mt-2 text-emerald-600 dark:text-emerald-400">
-                        {stats.present}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider">
-                          Absent Count
-                        </span>
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                      </div>
-                      <p className="text-2xl font-black mt-2 text-red-600 dark:text-red-400">
-                        {stats.absent}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                          Avg Confidence
-                        </span>
-                        <Award className="h-4 w-4 text-blue-500" />
-                      </div>
-                      <p className="text-2xl font-black mt-2 text-blue-600 dark:text-blue-400">
-                        {stats.avgConfidence}%
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Filters Panel */}
-                  <div className="rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <h3 className="text-base font-bold flex items-center gap-1.5">
-                        <Search className="h-4 w-4 text-zinc-400" />
-                        Query ledger
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={handleExportCSV}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-[0.98] transition-all"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Export CSV
-                        </button>
-                        <button
-                          onClick={handleClearLogs}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-200 hover:bg-red-50 text-red-700 dark:border-red-950 dark:hover:bg-red-950/40 dark:text-red-400 active:scale-[0.98] transition-all"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Clear Logs
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-3 mt-4">
-                      {/* Course selection */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1">
-                          Filter Course
-                        </label>
-                        <select
-                          value={filterCourse}
-                          onChange={(e) => setFilterCourse(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="all">All Courses</option>
-                          {courses.map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.code} - {c.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Date Picker */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1">
-                          Filter Date
-                        </label>
+                <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+                  <div className="p-6 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <h3 className="font-bold text-slate-800">Ledger History</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                         <input
-                          type="date"
-                          value={filterDate}
-                          onChange={(e) => setFilterDate(e.target.value)}
-                          className="w-full px-3 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                          type="text"
+                          placeholder="Search..."
+                          value={searchStudent}
+                          onChange={(e) => setSearchStudent(e.target.value)}
+                          className="pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-full text-xs focus:outline-none focus:border-emerald-900"
                         />
                       </div>
-
-                      {/* Student Search */}
-                      <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase mb-1">
-                          Search Name / Roll Number
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search student..."
-                            value={searchStudent}
-                            onChange={(e) => setSearchStudent(e.target.value)}
-                            className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                          <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-zinc-400" />
-                        </div>
-                      </div>
+                      <button onClick={handleExportCSV} className="text-xs font-semibold bg-white border border-slate-200 px-4 py-2 rounded-full hover:bg-slate-50 shadow-sm transition-colors">
+                        Export CSV
+                      </button>
                     </div>
                   </div>
-
-                  {/* Attendance Table */}
-                  <div className="rounded-2xl border border-zinc-200/80 bg-white/70 backdrop-blur-sm overflow-hidden shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/40">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 text-xs font-bold text-zinc-500 dark:text-zinc-400">
-                            <th className="p-4">Student Details</th>
-                            <th className="p-4">Course Details</th>
-                            <th className="p-4">Timestamp</th>
-                            <th className="p-4">Match Rate</th>
-                            <th className="p-4">Status</th>
+                  
+                  <div className="overflow-x-auto p-4">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          <th className="pb-3 pl-4">Student</th>
+                          <th className="pb-3">Course</th>
+                          <th className="pb-3">Time</th>
+                          <th className="pb-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {filteredLogs.map((log) => (
+                          <tr key={log.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                            <td className="py-4 pl-4">
+                              <div className="font-bold text-slate-800">{log.studentName}</div>
+                              <div className="text-[10px] font-mono text-slate-500 mt-0.5">{log.studentRollNumber}</div>
+                            </td>
+                            <td className="py-4">
+                              <div className="font-medium text-slate-700">{log.courseName.split(":")[0] || "CLASS"}</div>
+                            </td>
+                            <td className="py-4 text-slate-500 text-xs">
+                              {new Date(log.timestamp).toLocaleDateString()}
+                            </td>
+                            <td className="py-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                                log.status === "Present" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                              }`}>
+                                {log.status}
+                              </span>
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 text-xs">
-                          {filteredLogs.length === 0 ? (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                className="p-8 text-center text-zinc-400 italic"
-                              >
-                                No attendance records matched this query.
-                              </td>
-                            </tr>
-                          ) : (
-                            filteredLogs.map((log) => {
-                              const dateObj = new Date(log.timestamp);
-                              const formattedDate = dateObj.toLocaleDateString(
-                                undefined,
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                }
-                              );
-                              const formattedTime = dateObj.toLocaleTimeString(
-                                undefined,
-                                {
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                }
-                              );
-
-                              return (
-                                <tr
-                                  key={log.id}
-                                  className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors"
-                                >
-                                  <td className="p-4">
-                                    <div className="font-bold text-zinc-900 dark:text-white">
-                                      {log.studentName}
-                                    </div>
-                                    <div className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 mt-0.5">
-                                      {log.studentRollNumber}
-                                    </div>
-                                  </td>
-                                  <td className="p-4 font-medium">
-                                    <span className="inline-flex rounded-md bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 font-bold tracking-tight">
-                                      {log.courseName.split(":")[0] || "CLASS"}
-                                    </span>
-                                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 truncate max-w-xs mt-0.5">
-                                      {log.courseName}
-                                    </div>
-                                  </td>
-                                  <td className="p-4">
-                                    <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                                      <Clock className="h-3.5 w-3.5 text-zinc-400" />
-                                      <span>
-                                        {formattedDate} at {formattedTime}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className="p-4">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-16 bg-zinc-200 dark:bg-zinc-800 rounded-full h-1.5 overflow-hidden">
-                                        <div
-                                          className={`h-1.5 rounded-full ${
-                                            log.status === "Present"
-                                              ? "bg-emerald-500"
-                                              : "bg-red-500"
-                                          }`}
-                                          style={{
-                                            width: `${log.similarityScore}%`,
-                                          }}
-                                        ></div>
-                                      </div>
-                                      <span className="font-mono font-semibold">
-                                        {log.similarityScore}%
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className="p-4">
-                                    <span
-                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${
-                                        log.status === "Present"
-                                          ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                          : "bg-red-50 text-red-800 dark:bg-red-950/40 dark:text-red-400"
-                                      }`}
-                                    >
-                                      <span
-                                        className={`h-1.5 w-1.5 rounded-full ${
-                                          log.status === "Present"
-                                            ? "bg-emerald-500 animate-pulse"
-                                            : "bg-red-500"
-                                        }`}
-                                      ></span>
-                                      {log.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </>
-          )}
+
+            </div>
+          </main>
         </div>
       </div>
     </ProtectedRoute>

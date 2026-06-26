@@ -350,7 +350,7 @@ export default function AdminDashboard() {
                   <Camera className="h-4 w-4" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-slate-800">
-                  Donezo
+                  FR
                 </span>
               </Link>
             </div>

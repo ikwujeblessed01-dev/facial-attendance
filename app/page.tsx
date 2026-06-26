@@ -131,7 +131,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="py-8 text-center text-xs font-medium text-slate-400 bg-white border-t border-slate-200 w-full mt-auto">
-          <p>© {new Date().getFullYear()} Donezo FaceCheck. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} FR FaceCheck. All rights reserved.</p>
         </footer>
       </main>
     </>

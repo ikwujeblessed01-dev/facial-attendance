@@ -95,7 +95,7 @@ export default function LoginPage() {
               <Camera className="h-6 w-6" />
             </div>
             <span className="text-3xl font-bold tracking-tight text-slate-800">
-              Donezo
+              FR
             </span>
           </Link>
           <p className="text-slate-500 text-sm text-center">

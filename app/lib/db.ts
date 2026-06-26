@@ -1,16 +1,34 @@
 "use client";
 
+import {
+  collection,
+  doc,
+  getDocs,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  writeBatch,
+  Timestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
+
+// ─── Types ───────────────────────────────────────────────────────────
+
 export interface Course {
   id: string;
   name: string;
   code: string;
+  shareCode?: string;
 }
 
 export interface Student {
   id: string;
   name: string;
   rollNumber: string;
-  faceTemplate?: string; // base64 representation of registered face photo
+  faceTemplate?: string; // base64 of registered face
 }
 
 export interface AttendanceLog {
@@ -20,177 +38,164 @@ export interface AttendanceLog {
   studentRollNumber: string;
   courseId: string;
   courseName: string;
-  timestamp: string; // ISO format
-  status: 'Present' | 'Absent';
+  timestamp: string; // ISO string
+  status: "Present" | "Absent";
   similarityScore: number;
 }
 
-const DB_KEYS = {
-  COURSES: 'facial_attendance_courses',
-  STUDENTS: 'facial_attendance_students',
-  LOGS: 'facial_attendance_logs',
-};
+// ─── Helpers ─────────────────────────────────────────────────────────
 
-const SEED_COURSES: Course[] = [
-  { id: 'c1', name: 'Introduction to Computer Science', code: 'CS-101' },
-  { id: 'c2', name: 'Data Structures & Algorithms', code: 'CS-202' },
-  { id: 'c3', name: 'Artificial Intelligence & Machine Learning', code: 'CS-303' },
-];
+function userRef(uid: string) {
+  return doc(db, "users", uid);
+}
 
-const SEED_STUDENTS: Student[] = [
-  { id: 's1', name: 'Alex Rivera', rollNumber: '2026-CS-001' },
-  { id: 's2', name: 'Sarah Jenkins', rollNumber: '2026-CS-002' },
-  { id: 's3', name: 'Michael Chang', rollNumber: '2026-CS-003' },
-  { id: 's4', name: 'Emily Rodriguez', rollNumber: '2026-CS-004' },
-];
+function coursesCol(uid: string) {
+  return collection(db, "users", uid, "courses");
+}
 
-// Helper to check environment
-const isClient = () => typeof window !== 'undefined';
+function studentsCol(uid: string) {
+  return collection(db, "users", uid, "students");
+}
 
-export function initializeDB(): void {
-  if (!isClient()) return;
+function logsCol(uid: string) {
+  return collection(db, "users", uid, "logs");
+}
 
-  if (!localStorage.getItem(DB_KEYS.COURSES)) {
-    localStorage.setItem(DB_KEYS.COURSES, JSON.stringify(SEED_COURSES));
-  }
+// ─── Course Operations ──────────────────────────────────────────────
 
-  if (!localStorage.getItem(DB_KEYS.STUDENTS)) {
-    localStorage.setItem(DB_KEYS.STUDENTS, JSON.stringify(SEED_STUDENTS));
-  }
+export async function getCourses(uid: string): Promise<Course[]> {
+  const snap = await getDocs(coursesCol(uid));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Course));
+}
 
-  if (!localStorage.getItem(DB_KEYS.LOGS)) {
-    // Generate some mock history logs for the last few days
-    const mockLogs: AttendanceLog[] = [];
-    const now = new Date();
-    
-    // Day -2
-    mockLogs.push({
-      id: 'l1',
-      studentId: 's1',
-      studentName: 'Alex Rivera',
-      studentRollNumber: '2026-CS-001',
-      courseId: 'c1',
-      courseName: 'Introduction to Computer Science',
-      timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000 - 4 * 60 * 60 * 1000).toISOString(), // 2 days ago
-      status: 'Present',
-      similarityScore: 94.2,
+export async function addCourse(
+  uid: string,
+  course: Omit<Course, "id">
+): Promise<Course> {
+  // Generate a short share code (6 chars)
+  const shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const docRef = await addDoc(coursesCol(uid), {
+    ...course,
+    shareCode,
+  });
+
+  // Also register in the global shared_classes collection
+  await setDoc(doc(db, "shared_classes", shareCode), {
+    lecturerUid: uid,
+    courseId: docRef.id,
+    courseName: course.name,
+    courseCode: course.code,
+  });
+
+  return { id: docRef.id, ...course, shareCode };
+}
+
+// ─── Student Operations ─────────────────────────────────────────────
+
+export async function getStudents(uid: string): Promise<Student[]> {
+  const snap = await getDocs(studentsCol(uid));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Student));
+}
+
+export async function addStudent(
+  uid: string,
+  student: Omit<Student, "id" | "faceTemplate">
+): Promise<Student> {
+  const docRef = await addDoc(studentsCol(uid), student);
+  return { id: docRef.id, ...student };
+}
+
+export async function updateStudentFace(
+  uid: string,
+  studentId: string,
+  faceTemplate: string
+): Promise<boolean> {
+  try {
+    await updateDoc(doc(db, "users", uid, "students", studentId), {
+      faceTemplate,
     });
-    mockLogs.push({
-      id: 'l2',
-      studentId: 's2',
-      studentName: 'Sarah Jenkins',
-      studentRollNumber: '2026-CS-002',
-      courseId: 'c1',
-      courseName: 'Introduction to Computer Science',
-      timestamp: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000 - 3.8 * 60 * 60 * 1000).toISOString(),
-      status: 'Present',
-      similarityScore: 89.7,
-    });
-
-    // Day -1
-    mockLogs.push({
-      id: 'l3',
-      studentId: 's1',
-      studentName: 'Alex Rivera',
-      studentRollNumber: '2026-CS-001',
-      courseId: 'c2',
-      courseName: 'Data Structures & Algorithms',
-      timestamp: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000).toISOString(), // 1 day ago
-      status: 'Present',
-      similarityScore: 92.5,
-    });
-    mockLogs.push({
-      id: 'l4',
-      studentId: 's3',
-      studentName: 'Michael Chang',
-      studentRollNumber: '2026-CS-003',
-      courseId: 'c2',
-      courseName: 'Data Structures & Algorithms',
-      timestamp: new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000 - 1.9 * 60 * 60 * 1000).toISOString(),
-      status: 'Present',
-      similarityScore: 91.1,
-    });
-    
-    localStorage.setItem(DB_KEYS.LOGS, JSON.stringify(mockLogs));
-  }
-}
-
-// Course operations
-export function getCourses(): Course[] {
-  if (!isClient()) return [];
-  initializeDB();
-  const data = localStorage.getItem(DB_KEYS.COURSES);
-  return data ? JSON.parse(data) : [];
-}
-
-export function addCourse(course: Omit<Course, 'id'>): Course {
-  if (!isClient()) throw new Error('Client-side operation only');
-  const courses = getCourses();
-  const newCourse = { ...course, id: 'c_' + Math.random().toString(36).substr(2, 9) };
-  courses.push(newCourse);
-  localStorage.setItem(DB_KEYS.COURSES, JSON.stringify(courses));
-  return newCourse;
-}
-
-// Student operations
-export function getStudents(): Student[] {
-  if (!isClient()) return [];
-  initializeDB();
-  const data = localStorage.getItem(DB_KEYS.STUDENTS);
-  return data ? JSON.parse(data) : [];
-}
-
-export function addStudent(student: Omit<Student, 'id' | 'faceTemplate'>): Student {
-  if (!isClient()) throw new Error('Client-side operation only');
-  const students = getStudents();
-  const newStudent = { ...student, id: 's_' + Math.random().toString(36).substr(2, 9) };
-  students.push(newStudent);
-  localStorage.setItem(DB_KEYS.STUDENTS, JSON.stringify(students));
-  return newStudent;
-}
-
-export function updateStudentFace(studentId: string, faceTemplate: string): boolean {
-  if (!isClient()) return false;
-  const students = getStudents();
-  const index = students.findIndex(s => s.id === studentId);
-  if (index !== -1) {
-    students[index].faceTemplate = faceTemplate;
-    localStorage.setItem(DB_KEYS.STUDENTS, JSON.stringify(students));
     return true;
+  } catch (err) {
+    console.error("Failed to update face template:", err);
+    return false;
   }
-  return false;
 }
 
-export function deleteStudent(studentId: string): boolean {
-  if (!isClient()) return false;
-  let students = getStudents();
-  students = students.filter(s => s.id !== studentId);
-  localStorage.setItem(DB_KEYS.STUDENTS, JSON.stringify(students));
-  return true;
+export async function deleteStudent(
+  uid: string,
+  studentId: string
+): Promise<boolean> {
+  try {
+    await deleteDoc(doc(db, "users", uid, "students", studentId));
+    return true;
+  } catch (err) {
+    console.error("Failed to delete student:", err);
+    return false;
+  }
 }
 
-// Attendance Log operations
-export function getAttendanceLogs(): AttendanceLog[] {
-  if (!isClient()) return [];
-  initializeDB();
-  const data = localStorage.getItem(DB_KEYS.LOGS);
-  return data ? JSON.parse(data) : [];
+// ─── Attendance Log Operations ──────────────────────────────────────
+
+export async function getAttendanceLogs(
+  uid: string
+): Promise<AttendanceLog[]> {
+  const snap = await getDocs(logsCol(uid));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as AttendanceLog));
 }
 
-export function logAttendance(log: Omit<AttendanceLog, 'id' | 'timestamp'>): AttendanceLog {
-  if (!isClient()) throw new Error('Client-side operation only');
-  const logs = getAttendanceLogs();
-  const newLog: AttendanceLog = {
+export async function logAttendance(
+  uid: string,
+  log: Omit<AttendanceLog, "id" | "timestamp">
+): Promise<AttendanceLog> {
+  const timestamp = new Date().toISOString();
+  const docRef = await addDoc(logsCol(uid), {
     ...log,
-    id: 'l_' + Math.random().toString(36).substr(2, 9),
-    timestamp: new Date().toISOString()
-  };
-  logs.unshift(newLog); // Prepend to show latest first
-  localStorage.setItem(DB_KEYS.LOGS, JSON.stringify(logs));
-  return newLog;
+    timestamp,
+  });
+  return { id: docRef.id, ...log, timestamp };
 }
 
-export function clearAttendanceLogs(): void {
-  if (!isClient()) return;
-  localStorage.setItem(DB_KEYS.LOGS, JSON.stringify([]));
+export async function clearAttendanceLogs(uid: string): Promise<void> {
+  const snap = await getDocs(logsCol(uid));
+  const batch = writeBatch(db);
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
+// ─── Shared Class Lookup (for Student Portal) ───────────────────────
+
+import { getDoc } from "firebase/firestore";
+
+export interface SharedClass {
+  lecturerUid: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+}
+
+export async function resolveShareCode(
+  code: string
+): Promise<SharedClass | null> {
+  const snap = await getDoc(doc(db, "shared_classes", code.toUpperCase()));
+  if (!snap.exists()) return null;
+  return snap.data() as SharedClass;
+}
+
+export async function getStudentsByLecturer(
+  lecturerUid: string
+): Promise<Student[]> {
+  const snap = await getDocs(studentsCol(lecturerUid));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Student));
+}
+
+export async function logAttendanceByLecturer(
+  lecturerUid: string,
+  log: Omit<AttendanceLog, "id" | "timestamp">
+): Promise<AttendanceLog> {
+  const timestamp = new Date().toISOString();
+  const docRef = await addDoc(logsCol(lecturerUid), {
+    ...log,
+    timestamp,
+  });
+  return { id: docRef.id, ...log, timestamp };
 }

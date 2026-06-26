@@ -2,23 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Camera, LayoutDashboard, UserCheck, ShieldAlert } from "lucide-react";
+import {
+  Camera,
+  LayoutDashboard,
+  UserCheck,
+  Shield,
+  LogOut,
+  User,
+  Menu,
+  X,
+} from "lucide-react";
+import { useAuth } from "../lib/auth-context";
+import { useState } from "react";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     {
       name: "Admin Dashboard",
       href: "/admin",
       icon: LayoutDashboard,
-      activeColor: "text-blue-500 dark:text-blue-400 border-blue-500",
+      activeColor: "text-blue-500 dark:text-blue-400",
     },
     {
       name: "Student Portal",
       href: "/student",
       icon: UserCheck,
-      activeColor: "text-emerald-500 dark:text-emerald-400 border-emerald-500",
+      activeColor: "text-emerald-500 dark:text-emerald-400",
     },
   ];
 
@@ -38,11 +51,12 @@ export default function Navbar() {
           </Link>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex space-x-1 sm:space-x-4">
+        {/* Desktop Navigation Items */}
+        <nav className="hidden md:flex space-x-1 sm:space-x-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            const isActive =
+              pathname === item.href || pathname?.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.href}
@@ -56,25 +70,41 @@ export default function Navbar() {
                 <Icon
                   className={`h-4 w-4 transition-transform group-hover:scale-110 ${
                     isActive
-                      ? pathname.startsWith("/admin")
-                        ? "text-blue-500"
-                        : "text-emerald-500"
+                      ? item.activeColor
                       : "text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"
                   }`}
                 />
-                <span className="hidden sm:inline">{item.name}</span>
+                <span>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* User Role Indicator / Actions */}
-        <div className="flex items-center gap-2">
-          {pathname?.startsWith("/admin") ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-700/10 dark:bg-blue-950/40 dark:text-blue-400 dark:ring-blue-400/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
-              Lecturer Mode
-            </span>
+        <div className="hidden md:flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center border border-blue-500/20">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                    {user.displayName || "Lecturer"}
+                  </span>
+                  <span className="text-[10px] text-zinc-500">
+                    {user.email}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="p-2 rounded-lg text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
           ) : pathname?.startsWith("/student") ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-700/10 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-400/20">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -86,7 +116,75 @@ export default function Navbar() {
             </span>
           )}
         </div>
+
+        {/* Mobile Menu Toggle */}
+        <div className="md:hidden flex items-center">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 animate-slide-up">
+          <div className="px-4 py-4 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                pathname === item.href || pathname?.startsWith(`${item.href}/`);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
+                    isActive
+                      ? "bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                      : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                  }`}
+                >
+                  <Icon
+                    className={`h-5 w-5 ${
+                      isActive ? item.activeColor : "text-zinc-400"
+                    }`}
+                  />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+          
+          {/* Mobile User Profile */}
+          {user && (
+            <div className="border-t border-zinc-200 dark:border-zinc-800 p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center border border-blue-500/20">
+                  <User className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                    {user.displayName || "Lecturer"}
+                  </div>
+                  <div className="text-xs text-zinc-500">{user.email}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  signOut();
+                  setMobileMenuOpen(false);
+                }}
+                className="p-2.5 rounded-xl text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

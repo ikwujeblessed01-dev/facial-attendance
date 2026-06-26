@@ -80,39 +80,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-zinc-950">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-zinc-950 to-emerald-950 animate-gradient" />
-
-      {/* Floating orbs */}
-      <div className="absolute top-1/4 left-1/3 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-1/4 right-1/3 w-96 h-96 bg-emerald-500/8 rounded-full blur-3xl animate-float stagger-3" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl" />
-
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-slate-50 font-sans">
+      {/* Background Decor */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-emerald-900/5 to-transparent"></div>
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-emerald-800/10 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-0 left-0 w-full h-64 bg-gradient-to-t from-white to-transparent"></div>
 
       {/* Content */}
       <div className="relative z-10 w-full max-w-md px-4 animate-scale-in">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <Link href="/" className="flex items-center gap-3 group mb-4">
-            <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 text-white shadow-xl shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300">
-              <Camera className="h-7 w-7" />
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-600 to-emerald-500 blur-lg opacity-40 group-hover:opacity-70 transition-opacity -z-10" />
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-900 text-white shadow-lg group-hover:-translate-y-1 transition-transform duration-300">
+              <Camera className="h-6 w-6" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-white">
-              FaceCheck<span className="text-blue-400 font-extrabold">.</span>
+            <span className="text-3xl font-bold tracking-tight text-slate-800">
+              Donezo
             </span>
           </Link>
-          <p className="text-zinc-400 text-sm text-center">
+          <p className="text-slate-500 text-sm text-center">
             {mode === "login"
               ? "Welcome back. Sign in to your lecturer account."
               : "Create a new lecturer account to get started."}
@@ -120,21 +106,21 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-zinc-800/80 bg-zinc-900/70 backdrop-blur-xl p-8 shadow-2xl shadow-black/40">
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
           {/* Tab toggle */}
-          <div className="flex p-1 bg-zinc-800/60 rounded-xl mb-6">
+          <div className="flex p-1 bg-slate-100 rounded-xl mb-6 border border-slate-200/60">
             <button
               onClick={() => {
                 setMode("login");
                 setError("");
               }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
                 mode === "login"
-                  ? "bg-zinc-700 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white text-emerald-900 shadow-sm border border-slate-200/50"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <LogIn className="h-3.5 w-3.5" />
+              <LogIn className="h-4 w-4" />
               Sign In
             </button>
             <button
@@ -142,20 +128,20 @@ export default function LoginPage() {
                 setMode("signup");
                 setError("");
               }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-semibold rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition-all ${
                 mode === "signup"
-                  ? "bg-zinc-700 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white text-emerald-900 shadow-sm border border-slate-200/50"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              <UserPlus className="h-3.5 w-3.5" />
+              <UserPlus className="h-4 w-4" />
               Create Account
             </button>
           </div>
 
           {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2.5 mb-4 rounded-xl bg-red-950/40 border border-red-900/60 text-red-400 text-xs font-medium animate-fade-in">
+            <div className="flex items-center gap-2 px-4 py-3 mb-6 rounded-xl bg-red-50 border border-red-100 text-red-600 text-xs font-semibold animate-fade-in">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -165,7 +151,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
               <div className="animate-fade-in">
-                <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5 tracking-wide">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -174,13 +160,13 @@ export default function LoginPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 text-sm rounded-xl border border-zinc-800 bg-zinc-950/70 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all"
+                  className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all font-medium"
                 />
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5 tracking-wide">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Email Address
               </label>
               <input
@@ -189,12 +175,12 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 text-sm rounded-xl border border-zinc-800 bg-zinc-950/70 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all"
+                className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all font-medium"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5 tracking-wide">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -204,12 +190,12 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-11 text-sm rounded-xl border border-zinc-800 bg-zinc-950/70 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all"
+                  className="w-full px-4 py-3 pr-11 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -223,7 +209,7 @@ export default function LoginPage() {
 
             {mode === "signup" && (
               <div className="animate-fade-in">
-                <label className="block text-xs font-semibold uppercase text-zinc-400 mb-1.5 tracking-wide">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Confirm Password
                 </label>
                 <input
@@ -232,7 +218,7 @@ export default function LoginPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 text-sm rounded-xl border border-zinc-800 bg-zinc-950/70 text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all"
+                  className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 bg-slate-50 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all font-medium"
                 />
               </div>
             )}
@@ -240,7 +226,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/15 active:scale-[0.98] transition-all duration-200"
+              className="flex items-center justify-center gap-2 w-full py-3.5 mt-2 rounded-xl text-sm font-bold text-white bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all duration-200"
             >
               {submitting ? (
                 <>
@@ -264,17 +250,17 @@ export default function LoginPage() {
           </form>
 
           {/* Security badge */}
-          <div className="flex items-center justify-center gap-1.5 mt-6 text-zinc-500 text-[10px] font-medium">
-            <Shield className="h-3 w-3" />
+          <div className="flex items-center justify-center gap-1.5 mt-8 text-slate-400 text-[10px] font-bold tracking-wide uppercase">
+            <Shield className="h-3.5 w-3.5" />
             Secured with Firebase Authentication
           </div>
         </div>
 
         {/* Back to home */}
-        <div className="text-center mt-6">
+        <div className="text-center mt-8">
           <Link
             href="/"
-            className="text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
+            className="text-slate-500 hover:text-slate-800 text-sm font-semibold transition-colors flex items-center justify-center gap-1"
           >
             ← Back to home
           </Link>

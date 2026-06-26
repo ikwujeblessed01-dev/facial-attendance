@@ -25,7 +25,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// Image comparison function using RMSE of downsampled grayscale grids
 function compareImages(
   img1Base64: string,
   img2Base64: string
@@ -39,7 +38,7 @@ function compareImages(
       loadedCount++;
       if (loadedCount === 2) {
         try {
-          const size = 32; // downsample to a 32x32 grid to analyze structures
+          const size = 32;
           const canvas1 = document.createElement("canvas");
           const canvas2 = document.createElement("canvas");
           canvas1.width = size;
@@ -96,22 +95,17 @@ function StudentPortalContent() {
   const searchParams = useSearchParams();
   const initialCode = searchParams.get("class") || "";
 
-  // Share Code Resolution States
   const [shareCode, setShareCode] = useState(initialCode);
   const [resolving, setResolving] = useState(false);
   const [resolveError, setResolveError] = useState("");
   const [activeClass, setActiveClass] = useState<SharedClass | null>(null);
 
-  // DB Lists (scoped to the lecturer that owns the activeClass)
   const [students, setStudents] = useState<Student[]>([]);
-
-  // Selection states
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [threshold, setThreshold] = useState(70); // Match threshold %
+  const [threshold, setThreshold] = useState(70);
 
-  // Scanner states
   const [step, setStep] = useState<"code" | "select" | "scan" | "result">(
     initialCode ? "select" : "code"
   );
@@ -119,12 +113,10 @@ function StudentPortalContent() {
   const [scanStatus, setScanStatus] = useState("");
   const [scanSuccess, setScanSuccess] = useState<boolean | null>(null);
 
-  // Captured photos for side-by-side verification
   const [registeredPhoto, setRegisteredPhoto] = useState<string | null>(null);
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [matchScore, setMatchScore] = useState<number>(0);
 
-  // Auto-resolve code if present in URL
   useEffect(() => {
     if (initialCode) {
       handleResolveCode(initialCode);
@@ -162,14 +154,12 @@ function StudentPortalContent() {
 
   const activeStudent = students.find((s) => s.id === selectedStudentId);
 
-  // Filter students by search term
   const filteredStudents = students.filter(
     (s) =>
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.rollNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Start the scan procedure
   const handleStartScan = () => {
     if (!activeClass || !selectedStudentId) return;
     if (!activeStudent?.faceTemplate) {
@@ -185,14 +175,12 @@ function StudentPortalContent() {
     setCapturedPhoto(null);
   };
 
-  // Process capture from WebcamScanner
   const handleCapture = async (base64Image: string) => {
     if (!activeStudent?.faceTemplate || !activeClass) return;
 
     setIsScanning(true);
     setCapturedPhoto(base64Image);
 
-    // Step-by-step biometric simulation sequence
     const statuses = [
       "Initializing AI neural face grid scanner...",
       "Analyzing face alignment and facial landmark coordinates...",
@@ -206,7 +194,6 @@ function StudentPortalContent() {
       await new Promise((r) => setTimeout(r, 800));
     }
 
-    // Run the actual image comparison
     const score = await compareImages(activeStudent.faceTemplate, base64Image);
     setMatchScore(score);
 
@@ -214,7 +201,6 @@ function StudentPortalContent() {
     setScanSuccess(isMatched);
     setIsScanning(false);
 
-    // Log the attendance records in the lecturer's database
     await logAttendanceByLecturer(activeClass.lecturerUid, {
       studentId: activeStudent.id,
       studentName: activeStudent.name,
@@ -225,11 +211,9 @@ function StudentPortalContent() {
       similarityScore: score,
     });
 
-    // Go to results step
     setStep("result");
   };
 
-  // Reset scanner to retry
   const handleRetry = () => {
     setStep("scan");
     setScanSuccess(null);
@@ -241,35 +225,35 @@ function StudentPortalContent() {
   return (
     <>
       {/* Top Header */}
-      <div className="border-b border-zinc-200/50 bg-white py-6 dark:border-zinc-800/50 dark:bg-zinc-900/40">
+      <div className="border-b border-slate-200 bg-white py-6">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-black tracking-tight">
-            Student Attendance Check-In
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">
+            Student Check-In Kiosk
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Enter your class code, verify your identity via webcam, and log
             attendance instantly.
           </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-xl px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
         {/* STEP 0: ENTER CLASS CODE */}
         {step === "code" && (
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-900/40 space-y-6 animate-scale-in">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 space-y-6 animate-scale-in">
             <div className="flex flex-col items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-900 mb-4 border border-emerald-100">
                 <KeyRound className="h-8 w-8" />
               </div>
-              <h2 className="text-xl font-bold">Class Code Required</h2>
-              <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2">
+              <h2 className="text-xl font-bold text-slate-800">Class Code Required</h2>
+              <p className="text-slate-500 text-sm mt-2 font-medium">
                 Enter the 6-character code provided by your lecturer to join the
                 attendance session.
               </p>
             </div>
 
             {resolveError && (
-              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-800 dark:bg-red-950/40 dark:border-red-900 dark:text-red-400 text-sm font-medium animate-fade-in">
+              <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm font-semibold animate-fade-in">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
                 <span>{resolveError}</span>
               </div>
@@ -289,14 +273,14 @@ function StudentPortalContent() {
                   required
                   value={shareCode}
                   onChange={(e) => setShareCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-4 text-center text-2xl tracking-[0.5em] font-mono font-bold rounded-2xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all uppercase"
+                  className="w-full px-4 py-4 text-center text-3xl tracking-[0.5em] font-mono font-bold rounded-2xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all uppercase placeholder-slate-300"
                   maxLength={6}
                 />
               </div>
               <button
                 type="submit"
                 disabled={resolving || shareCode.length < 6}
-                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-indigo-500/20 active:scale-[0.98] transition-all duration-200"
+                className="flex items-center justify-center gap-2 w-full py-4 rounded-xl text-sm font-bold text-white bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all duration-200"
               >
                 {resolving ? (
                   <>
@@ -316,29 +300,28 @@ function StudentPortalContent() {
 
         {/* STEP 1: SELECT STUDENT */}
         {step === "select" && activeClass && (
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-900/40 space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Connected to Class
                 </span>
-                <h2 className="text-lg font-bold flex items-center gap-2 text-zinc-900 dark:text-white mt-1">
-                  <BookOpen className="h-4 w-4 text-emerald-500" />
+                <h2 className="text-lg font-bold flex items-center gap-2 text-slate-900 mt-1">
+                  <BookOpen className="h-4 w-4 text-emerald-700" />
                   {activeClass.courseCode}: {activeClass.courseName}
                 </h2>
               </div>
               <button
                 onClick={() => setStep("code")}
-                className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-white transition-colors"
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors bg-slate-50 px-3 py-1.5 rounded-full border border-slate-200"
               >
-                Change
+                Change Class
               </button>
             </div>
 
             <div className="space-y-4">
-              {/* Student Selection (Search + dropdown) */}
               <div className="relative">
-                <label className="block text-xs font-semibold uppercase text-zinc-500 dark:text-zinc-400 mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
                   Confirm Your Identity
                 </label>
                 <div className="relative">
@@ -353,16 +336,15 @@ function StudentPortalContent() {
                       setDropdownOpen(true);
                     }}
                     onFocus={() => setDropdownOpen(true)}
-                    className="w-full pl-10 pr-4 py-3 text-sm rounded-xl border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium"
+                    className="w-full pl-10 pr-4 py-3.5 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-900/20 focus:border-emerald-900 transition-all font-medium text-slate-900"
                   />
-                  <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-zinc-400" />
+                  <Search className="absolute left-3.5 top-4 h-4 w-4 text-slate-400" />
                 </div>
 
-                {/* Dropdown Suggestions */}
                 {dropdownOpen && searchTerm && (
-                  <div className="absolute z-30 w-full mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-950 animate-slide-up">
+                  <div className="absolute z-30 w-full mt-2 max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl animate-slide-up">
                     {filteredStudents.length === 0 ? (
-                      <p className="p-4 text-sm text-zinc-400 italic text-center">
+                      <p className="p-4 text-sm text-slate-400 font-medium text-center">
                         No matching students found in this class roster.
                       </p>
                     ) : (
@@ -371,21 +353,21 @@ function StudentPortalContent() {
                           key={student.id}
                           type="button"
                           onClick={() => handleSelectStudent(student)}
-                          className="w-full text-left p-3 hover:bg-zinc-50 dark:hover:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-900 last:border-b-0 flex items-center justify-between transition-colors"
+                          className="w-full text-left p-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between transition-colors"
                         >
                           <div>
-                            <p className="font-bold text-sm text-zinc-900 dark:text-white">
+                            <p className="font-bold text-sm text-slate-900">
                               {student.name}
                             </p>
-                            <p className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
                               {student.rollNumber}
                             </p>
                           </div>
                           <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold border ${
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                               student.faceTemplate
-                                ? "bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400"
-                                : "bg-amber-50 border-amber-100 text-amber-700 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-400"
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                                : "bg-orange-50 border-orange-200 text-orange-800"
                             }`}
                           >
                             {student.faceTemplate
@@ -399,10 +381,9 @@ function StudentPortalContent() {
                 )}
               </div>
 
-              {/* Warning if Student lacks biometric print */}
               {selectedStudentId && !registeredPhoto && (
-                <div className="flex items-start gap-2.5 p-4 rounded-2xl bg-amber-50 border border-amber-200/60 dark:bg-amber-950/30 dark:border-amber-900 text-xs leading-relaxed text-amber-800 dark:text-amber-300 animate-fade-in">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <div className="flex items-start gap-2.5 p-4 rounded-xl bg-orange-50 border border-orange-200 text-xs leading-relaxed text-orange-800 animate-fade-in font-medium">
+                  <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0" />
                   <div>
                     <h4 className="font-bold mb-0.5 text-sm">
                       Biometric Profile Missing
@@ -417,11 +398,10 @@ function StudentPortalContent() {
               )}
             </div>
 
-            {/* Action Button */}
             <button
               onClick={handleStartScan}
               disabled={!selectedStudentId || !registeredPhoto}
-              className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl text-sm font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-emerald-500/20 active:scale-[0.98] transition-all duration-200 mt-6"
+              className="flex items-center justify-center gap-2 w-full py-4 rounded-xl text-sm font-bold text-white bg-emerald-900 hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20 active:scale-[0.98] transition-all duration-200 mt-6"
             >
               Proceed to Biometric Scan
               <ChevronRight className="h-5 w-5" />
@@ -435,17 +415,17 @@ function StudentPortalContent() {
             <div className="w-full flex items-center justify-between">
               <button
                 onClick={() => setStep("select")}
-                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Selection
+                Back
               </button>
               <div className="text-right">
-                <h3 className="text-sm font-bold text-zinc-900 dark:text-white">
+                <h3 className="text-sm font-bold text-slate-900">
                   {activeStudent?.name}
                 </h3>
-                <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
-                  {activeClass?.courseCode} Course Log
+                <p className="text-[10px] text-slate-500 font-mono mt-0.5 font-bold">
+                  {activeClass?.courseCode} Session
                 </p>
               </div>
             </div>
@@ -457,13 +437,12 @@ function StudentPortalContent() {
               scanSuccess={scanSuccess}
             />
 
-            {/* Threshold matching sensitivity configurations */}
-            <div className="w-full rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+            <div className="w-full rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Scanner Sensitivity (Threshold)
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Scanner Sensitivity
                 </label>
-                <span className="font-mono text-sm font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-100 dark:border-emerald-900">
+                <span className="font-mono text-sm font-bold text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   {threshold}% Match
                 </span>
               </div>
@@ -473,9 +452,9 @@ function StudentPortalContent() {
                 max="90"
                 value={threshold}
                 onChange={(e) => setThreshold(Number(e.target.value))}
-                className="w-full accent-emerald-500 cursor-pointer h-2 bg-zinc-200 rounded-lg appearance-none dark:bg-zinc-700"
+                className="w-full accent-emerald-900 cursor-pointer h-2 bg-slate-200 rounded-lg appearance-none"
               />
-              <div className="flex justify-between text-[10px] font-medium text-zinc-400 mt-2">
+              <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-2">
                 <span>Relaxed (50%)</span>
                 <span>Recommended (70%)</span>
                 <span>Strict (90%)</span>
@@ -486,124 +465,110 @@ function StudentPortalContent() {
 
         {/* STEP 3: RESULT AND COMPARISON */}
         {step === "result" && (
-          <div className="rounded-3xl border border-zinc-200/80 bg-white p-6 sm:p-8 shadow-xl dark:border-zinc-800/80 dark:bg-zinc-900/40 space-y-8 animate-scale-in text-center">
-            {/* Success / Failure Banner */}
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50 space-y-8 animate-scale-in text-center">
             {scanSuccess ? (
               <div className="flex flex-col items-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-5 animate-bounce">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 mb-5 border border-emerald-100 animate-bounce shadow-sm">
                   <ShieldCheck className="h-10 w-10" />
                 </div>
-                <h2 className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
+                <h2 className="text-3xl font-black text-emerald-800">
                   Attendance Logged
                 </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2 max-w-sm">
+                <p className="text-slate-500 text-sm mt-2 max-w-sm font-medium">
                   Identity verified successfully. Your presence has been
-                  recorded in the {activeClass?.courseCode} class roster.
+                  recorded in the {activeClass?.courseCode} roster.
                 </p>
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-red-600 dark:text-red-400 mb-5 animate-bounce">
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-50 text-red-600 mb-5 border border-red-100 animate-bounce shadow-sm">
                   <AlertTriangle className="h-10 w-10" />
                 </div>
-                <h2 className="text-3xl font-black text-red-600 dark:text-red-400">
-                  Verification Mismatch
+                <h2 className="text-3xl font-black text-red-700">
+                  Verification Failed
                 </h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm mt-2 max-w-sm">
+                <p className="text-slate-500 text-sm mt-2 max-w-sm font-medium">
                   The scan similarity score fell below the required threshold.
                   Please retry or contact your lecturer.
                 </p>
               </div>
             )}
 
-            {/* Side by side biometric breakdown */}
-            <div className="border-y border-zinc-200/50 dark:border-zinc-800/50 py-6 space-y-5 bg-zinc-50/50 dark:bg-zinc-950/20 -mx-6 px-6 sm:-mx-8 sm:px-8">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+            <div className="border border-slate-100 rounded-3xl py-6 space-y-5 bg-slate-50 px-6 shadow-inner">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Biometric Analysis Report
               </h3>
 
               <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-                {/* Registered */}
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-2 uppercase">
+                  <span className="text-[10px] font-bold text-slate-500 mb-2 uppercase">
                     Registered Profile
                   </span>
                   {registeredPhoto && (
-                    <div className="relative h-32 w-full rounded-2xl border border-zinc-200 overflow-hidden dark:border-zinc-800 shadow-inner">
+                    <div className="relative h-32 w-full rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                       <img
                         src={registeredPhoto}
-                        alt="Registered Profile"
+                        alt="Registered"
                         className="w-full h-full object-cover scale-x-[-1]"
                       />
-                      <div className="absolute inset-0 bg-blue-500/5 pointer-events-none"></div>
                     </div>
                   )}
                 </div>
 
-                {/* Captured */}
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-2 uppercase">
-                    Scan Frame Capture
+                  <span className="text-[10px] font-bold text-slate-500 mb-2 uppercase">
+                    Live Scan Frame
                   </span>
                   {capturedPhoto && (
                     <div
-                      className={`relative h-32 w-full rounded-2xl border-2 overflow-hidden shadow-inner ${
-                        scanSuccess ? "border-emerald-400" : "border-red-400"
+                      className={`relative h-32 w-full rounded-2xl border-4 overflow-hidden shadow-sm ${
+                        scanSuccess ? "border-emerald-500" : "border-red-500"
                       }`}
                     >
                       <img
                         src={capturedPhoto}
-                        alt="Captured Live"
+                        alt="Captured"
                         className="w-full h-full object-cover"
                       />
-                      <div
-                        className={`absolute inset-0 pointer-events-none ${
-                          scanSuccess ? "bg-emerald-500/10" : "bg-red-500/10"
-                        }`}
-                      ></div>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Score badge */}
-              <div className="inline-flex flex-col items-center p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm mt-2">
-                <span className="text-xs text-zinc-400 uppercase font-bold tracking-tight">
+              <div className="inline-flex flex-col items-center p-4 rounded-2xl bg-white border border-slate-200 shadow-sm mt-2 min-w-[150px]">
+                <span className="text-xs text-slate-400 uppercase font-bold tracking-tight">
                   Match Confidence
                 </span>
                 <span
                   className={`text-3xl font-black mt-1 ${
-                    scanSuccess ? "text-emerald-500" : "text-red-500"
+                    scanSuccess ? "text-emerald-700" : "text-red-600"
                   }`}
                 >
                   {matchScore}%
                 </span>
-                <span className="text-[10px] font-mono font-medium text-zinc-500 dark:text-zinc-400 mt-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-bold text-slate-500 mt-1 bg-slate-100 px-2 py-0.5 rounded">
                   Threshold Target: {threshold}%
                 </span>
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex flex-col gap-3">
               {!scanSuccess && (
                 <button
                   onClick={handleRetry}
-                  className="flex items-center justify-center gap-2 w-full py-4 rounded-xl text-sm font-bold text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 active:scale-[0.98] transition-all shadow-md"
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-xl text-sm font-bold text-white bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition-all shadow-md"
                 >
                   <RefreshCw className="h-5 w-5" />
                   Retry Biometric Scan
                 </button>
               )}
 
-              {/* Admin override toggle just in case it's a demo */}
               {!scanSuccess && (
                 <button
                   onClick={async () => {
                     if (activeStudent && activeClass) {
                       setScanSuccess(true);
                       playSynthSound("success");
-                      // Clear last log since it was negative and replace with Present
                       await logAttendanceByLecturer(activeClass.lecturerUid, {
                         studentId: activeStudent.id,
                         studentName: activeStudent.name,
@@ -611,11 +576,11 @@ function StudentPortalContent() {
                         courseId: activeClass.courseId,
                         courseName: `${activeClass.courseCode}: ${activeClass.courseName}`,
                         status: "Present",
-                        similarityScore: 100, // Override score
+                        similarityScore: 100,
                       });
                     }
                   }}
-                  className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 underline font-medium py-2"
+                  className="text-xs text-slate-400 hover:text-slate-600 underline font-medium py-2"
                 >
                   Demo Override: Force Verification Approval
                 </button>
@@ -624,7 +589,7 @@ function StudentPortalContent() {
               <Link
                 href="/"
                 onClick={() => setStep("select")}
-                className="flex items-center justify-center w-full py-4 rounded-xl text-sm font-bold text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-white bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900/50 dark:hover:bg-zinc-800 active:scale-[0.98] transition-all"
+                className="flex items-center justify-center w-full py-4 rounded-xl text-sm font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-sm active:scale-[0.98] transition-all"
               >
                 Return to Home Hub
               </Link>
@@ -638,12 +603,12 @@ function StudentPortalContent() {
 
 export default function StudentPortal() {
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-20">
+    <div className="min-h-screen bg-slate-50 font-sans">
       <Navbar />
       <Suspense
         fallback={
           <div className="flex items-center justify-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         }
       >

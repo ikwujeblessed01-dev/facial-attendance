@@ -8,7 +8,6 @@ import {
   getCourses,
   addCourse,
   getStudents,
-  addStudent,
   deleteStudent,
   updateStudentFace,
   getAttendanceLogs,
@@ -16,6 +15,7 @@ import {
   startAttendanceSession,
   stopAttendanceSession,
   logAttendance,
+  deleteAllDataForLecturer,
   Course,
   Student,
   AttendanceLog,
@@ -31,6 +31,7 @@ import {
   Search,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   Award,
   Clock,
   RefreshCw,
@@ -137,8 +138,6 @@ export default function AdminDashboard() {
   // Form States
   const [courseName, setCourseName] = useState("");
   const [courseCode, setCourseCode] = useState("");
-  const [studentName, setStudentName] = useState("");
-  const [studentRoll, setStudentRoll] = useState("");
 
   // Biometrics States
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
@@ -177,6 +176,11 @@ export default function AdminDashboard() {
   const [kioskCapturedPhoto, setKioskCapturedPhoto] = useState<string | null>(null);
   const [isKioskScanning, setIsKioskScanning] = useState(false);
   const [kioskThreshold, setKioskThreshold] = useState(70);
+
+  // Bulk Delete Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load database tables
   const loadData = useCallback(async () => {
@@ -341,35 +345,22 @@ export default function AdminDashboard() {
     }, 4000);
   };
 
-  // Add Student
-  const handleAddStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!studentName.trim() || !studentRoll.trim() || !uid) return;
-
-    if (
-      students.some(
-        (s) => s.rollNumber.toLowerCase() === studentRoll.trim().toLowerCase()
-      )
-    ) {
-      triggerNotification(
-        "A student with this Roll Number already exists.",
-        "error"
-      );
-      return;
-    }
-
+  // Bulk Delete All Data
+  const handleDeleteAllData = async () => {
+    if (!uid || deleteConfirmText !== "DELETE") return;
+    setIsDeleting(true);
     try {
-      await addStudent(uid, {
-        name: studentName.trim(),
-        rollNumber: studentRoll.trim().toUpperCase(),
-      });
-      const updatedStudents = await getStudents(uid);
-      setStudents(updatedStudents);
-      setStudentName("");
-      setStudentRoll("");
-      triggerNotification("Student enrolled successfully!", "success");
+      await deleteAllDataForLecturer(uid);
+      setCourses([]);
+      setStudents([]);
+      setLogs([]);
+      setShowDeleteModal(false);
+      setDeleteConfirmText("");
+      triggerNotification("All data has been permanently deleted.", "success");
     } catch (err) {
-      triggerNotification("Failed to enroll student.", "error");
+      triggerNotification("Failed to delete data. Please try again.", "error");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -849,7 +840,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* White Card 3 */}
+                    {/* White Card 3 — Avg Presence (calculated) */}
                     <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md group hover:-translate-y-1 transition-all">
                       <div className="flex justify-between items-start">
                         <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Avg Presence</span>
@@ -859,11 +850,22 @@ export default function AdminDashboard() {
                       </div>
                       <div className="mt-4">
                         <span className="text-4xl font-black text-slate-900 dark:text-slate-100">
-                          {logs.length > 0 ? Math.round((stats.present / logs.length) * 100) : 0}%
+                          {(() => {
+                            if (students.length === 0 || courses.length === 0) return "0%";
+                            // For each course, compute attendance rate = unique students present / total students
+                            const rates = courses.map((course) => {
+                              const courseLogs = logs.filter((l) => l.courseId === course.id);
+                              const uniquePresent = new Set(courseLogs.filter((l) => l.status === "Present").map((l) => l.studentId)).size;
+                              return students.length > 0 ? (uniquePresent / students.length) * 100 : 0;
+                            });
+                            const avg = rates.length > 0 ? Math.round(rates.reduce((a, b) => a + b, 0) / rates.length) : 0;
+                            return `${avg}%`;
+                          })()}
                         </span>
                       </div>
-                      <div className="mt-4 text-[10px] font-medium text-slate-400 pt-1">
-                        Overall student presence
+                      <div className="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-50 dark:bg-emerald-950/30 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+                        <TrendingUp className="h-3 w-3" />
+                        Avg across {courses.length} class{courses.length !== 1 ? "es" : ""}
                       </div>
                     </div>
                   </div>
@@ -1104,35 +1106,42 @@ export default function AdminDashboard() {
                     </form>
                   </div>
 
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-6 flex items-center gap-2">
-                      <Users className="h-5 w-5 text-emerald-700 dark:text-emerald-500" /> Enroll Student
-                    </h3>
-                    <form onSubmit={handleAddStudent} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Roll Number / ID</label>
-                        <input
-                          type="text"
-                          required
-                          value={studentRoll}
-                          onChange={(e) => setStudentRoll(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
-                        />
+                  {/* Student Enrollment Info + Danger Zone */}
+                  <div className="space-y-6">
+                    {/* Info Card */}
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                      <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+                        <Users className="h-5 w-5 text-emerald-700 dark:text-emerald-500" /> Student Enrollment
+                      </h3>
+                      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 rounded-2xl p-4 flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Enrollment is handled via the Student Portal</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 leading-relaxed">
+                            Students self-register by entering your class share code on the student portal. Share your class code with students so they can enroll and register their face biometrics.
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Full Name</label>
-                        <input
-                          type="text"
-                          required
-                          value={studentName}
-                          onChange={(e) => setStudentName(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-900 focus:ring-1 focus:ring-emerald-900 transition-all"
-                        />
+                      <div className="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-bold text-slate-700 dark:text-slate-300">{students.length}</span> student{students.length !== 1 ? "s" : ""} currently enrolled across your classes.
                       </div>
-                      <button type="submit" className="w-full py-3 bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-[0.98]">
-                        Add to Roster
+                    </div>
+
+                    {/* Danger Zone — Delete All Data */}
+                    <div className="bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/40 rounded-3xl p-6 shadow-sm">
+                      <h3 className="font-bold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" /> Danger Zone
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 leading-relaxed">
+                        Permanently delete all your courses, enrolled students, and attendance logs. This action cannot be undone.
+                      </p>
+                      <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                      >
+                        Delete All Data
                       </button>
-                    </form>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1410,6 +1419,61 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 p-8 max-w-md w-full space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-2xl bg-red-100 dark:bg-red-950/30 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Delete All Data</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">This action is permanent and irreversible.</p>
+              </div>
+            </div>
+
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/40 rounded-2xl p-4 text-xs text-red-700 dark:text-red-300 space-y-1">
+              <p>This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-0.5 font-medium">
+                <li><strong>{courses.length}</strong> course{courses.length !== 1 ? "s" : ""}</li>
+                <li><strong>{students.length}</strong> enrolled student{students.length !== 1 ? "s" : ""}</li>
+                <li><strong>{logs.length}</strong> attendance log{logs.length !== 1 ? "s" : ""}</li>
+              </ul>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
+                Type <span className="text-red-600 dark:text-red-400">DELETE</span> to confirm
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowDeleteModal(false); setDeleteConfirmText(""); }}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-xl transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAllData}
+                disabled={deleteConfirmText !== "DELETE" || isDeleting}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-all shadow-md cursor-pointer"
+              >
+                {isDeleting ? "Deleting..." : "Delete Everything"}
+              </button>
             </div>
           </div>
         </div>

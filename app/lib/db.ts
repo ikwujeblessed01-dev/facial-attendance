@@ -262,3 +262,38 @@ export async function logAttendanceByLecturer(
   });
   return { id: docRef.id, ...log, timestamp };
 }
+
+// ─── Bulk Delete Helpers ───────────────────────────────────────────────
+
+/** Delete all courses for a lecturer */
+export async function deleteAllCourses(uid: string): Promise<void> {
+  const snap = await getDocs(coursesCol(uid));
+  const batch = writeBatch(db);
+  snap.docs.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+}
+
+/** Delete all students for a lecturer */
+export async function deleteAllStudents(uid: string): Promise<void> {
+  const snap = await getDocs(studentsCol(uid));
+  const batch = writeBatch(db);
+  snap.docs.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+}
+
+/** Delete all attendance logs for a lecturer */
+export async function deleteAllLogs(uid: string): Promise<void> {
+  const snap = await getDocs(logsCol(uid));
+  const batch = writeBatch(db);
+  snap.docs.forEach((doc) => batch.delete(doc.ref));
+  await batch.commit();
+}
+
+/** Delete all data (courses, students, logs) for a lecturer */
+export async function deleteAllDataForLecturer(uid: string): Promise<void> {
+  await Promise.all([
+    deleteAllCourses(uid),
+    deleteAllStudents(uid),
+    deleteAllLogs(uid),
+  ]);
+}

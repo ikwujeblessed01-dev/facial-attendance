@@ -22,12 +22,14 @@ export interface Course {
   name: string;
   code: string;
   shareCode?: string;
+  sessionActiveUntil?: number;
 }
 
 export interface Student {
   id: string;
   name: string;
   rollNumber: string;
+  department?: string;
   faceTemplate?: string; // base64 of registered face
 }
 
@@ -171,6 +173,7 @@ export interface SharedClass {
   courseId: string;
   courseName: string;
   courseCode: string;
+  sessionActiveUntil?: number;
 }
 
 export async function resolveShareCode(
@@ -181,11 +184,71 @@ export async function resolveShareCode(
   return snap.data() as SharedClass;
 }
 
+export async function startAttendanceSession(
+  uid: string,
+  courseId: string,
+  shareCode: string,
+  durationMs: number
+): Promise<void> {
+  const sessionActiveUntil = Date.now() + durationMs;
+
+  const batch = writeBatch(db);
+  batch.update(doc(db, "users", uid, "courses", courseId), {
+    sessionActiveUntil,
+  });
+  batch.update(doc(db, "shared_classes", shareCode), {
+    sessionActiveUntil,
+  });
+
+  await batch.commit();
+}
+
+export async function stopAttendanceSession(
+  uid: string,
+  courseId: string,
+  shareCode: string
+): Promise<void> {
+  const batch = writeBatch(db);
+  
+  // Use null or deleteField, but since it's optional, setting it to 0 is also fine.
+  // We'll set to 0 for simplicity, meaning expired.
+  batch.update(doc(db, "users", uid, "courses", courseId), {
+    sessionActiveUntil: 0,
+  });
+  batch.update(doc(db, "shared_classes", shareCode), {
+    sessionActiveUntil: 0,
+  });
+
+  await batch.commit();
+}
+
 export async function getStudentsByLecturer(
   lecturerUid: string
 ): Promise<Student[]> {
   const snap = await getDocs(studentsCol(lecturerUid));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Student));
+}
+
+export async function registerStudentSelf(
+  lecturerUid: string,
+  student: Omit<Student, "id"> & { faceTemplate: string }
+): Promise<Student> {
+  const students = await getStudentsByLecturer(lecturerUid);
+  const existing = students.find(
+    (s) => s.rollNumber.toUpperCase() === student.rollNumber.toUpperCase()
+  );
+
+  if (existing) {
+    await updateDoc(doc(db, "users", lecturerUid, "students", existing.id), {
+      name: student.name,
+      department: student.department,
+      faceTemplate: student.faceTemplate,
+    });
+    return { id: existing.id, ...student };
+  } else {
+    const docRef = await addDoc(studentsCol(lecturerUid), student);
+    return { id: docRef.id, ...student };
+  }
 }
 
 export async function logAttendanceByLecturer(

@@ -11,14 +11,25 @@ import {
   User,
   Menu,
   X,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
 import { useState } from "react";
+import { useTheme } from "../lib/theme-context";
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    if (theme === "light") setTheme("dark");
+    else if (theme === "dark") setTheme("system");
+    else setTheme("light");
+  };
 
   const navItems = [
     {
@@ -82,6 +93,16 @@ export default function Navbar() {
 
         {/* User Role Indicator / Actions */}
         <div className="hidden md:flex items-center gap-4">
+          <button
+            onClick={cycleTheme}
+            className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+            title={`Active Theme: ${theme} (Click to cycle)`}
+          >
+            {theme === "light" && <Sun className="h-4 w-4 text-amber-500 animate-fade-in" />}
+            {theme === "dark" && <Moon className="h-4 w-4 text-indigo-400 animate-fade-in" />}
+            {theme === "system" && <Monitor className="h-4 w-4 text-zinc-500 dark:text-zinc-400 animate-fade-in" />}
+          </button>
+
           {user ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -118,7 +139,17 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="md:hidden flex items-center">
+        <div className="md:hidden flex items-center gap-2">
+          <button
+            onClick={cycleTheme}
+            className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+            title={`Active Theme: ${theme} (Click to cycle)`}
+          >
+            {theme === "light" && <Sun className="h-4 w-4 text-amber-500 animate-fade-in" />}
+            {theme === "dark" && <Moon className="h-4 w-4 text-indigo-400 animate-fade-in" />}
+            {theme === "system" && <Monitor className="h-4 w-4 text-zinc-500 dark:text-zinc-400 animate-fade-in" />}
+          </button>
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
